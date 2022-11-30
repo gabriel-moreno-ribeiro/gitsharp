@@ -1,9 +1,8 @@
 # gitsharp
 
-A Git implementation written from scratch in C#. It reads and writes the
-real Git on-disk formats, so a repository created with gitsharp can be opened
-with `git` and vice versa: loose objects (zlib-compressed, SHA-1 addressed),
-trees, commits, refs, and the binary `.git/index` file.
+Git em C#. Não um wrapper: ele lê e escreve os formatos de disco de verdade, então um repositório criado com o gitsharp abre no `git` e vice-versa. Objetos soltos (zlib, endereçados por SHA-1), trees, commits, refs e o arquivo binário `.git/index`.
+
+Foi o projeto que me fez parar de ter medo do Git. Depois de escrever o `status` na mão você entende exatamente o que é "staged" e o que é "working tree", e nunca mais precisa daquele diagrama.
 
 ```sh
 dotnet build -c Release
@@ -14,66 +13,34 @@ echo hello > hello.txt
 gitsharp add .
 gitsharp commit -m "first commit"
 gitsharp log --oneline
-git log --oneline          # real git agrees
-git fsck --strict          # and validates every object we wrote
+git log --oneline          # o git de verdade concorda
+git fsck --strict          # e valida cada objeto que a gente escreveu
 ```
 
-## Commands
-
-| Porcelain | |
+| Porcelana | |
 | --- | --- |
-| `init [dir]` | create an empty repository |
-| `add <path>...` | stage files (`.` and directories are expanded, deletions are staged too) |
-| `rm [--cached] <path>...` | unstage and delete |
-| `commit -m <msg>` | write tree and commit objects, advance the branch |
-| `status` | staged / unstaged / untracked, computed against HEAD, index and work tree |
-| `log [--oneline] [-n N]` | walk parents from HEAD |
-| `diff [--cached]` | unified diff of work tree vs index, or index vs HEAD |
-| `branch [-d] [name]` | list, create, delete |
-| `checkout [-b] <target>` | switch branch, create branch, or detach at a commit |
-| `tag [name]` | lightweight tags |
+| `init [dir]` | cria um repositório vazio |
+| `add <path>...` | stage (expande `.` e diretórios, inclui remoções) |
+| `rm [--cached] <path>...` | unstage e apaga |
+| `commit -m <msg>` | escreve tree e commit, avança o branch |
+| `status` | staged / unstaged / untracked contra HEAD, index e working tree |
+| `log [--oneline] [-n N]` | anda pelos pais a partir do HEAD |
+| `diff [--cached]` | diff unificado |
+| `branch [-d] [name]`, `checkout [-b] <alvo>`, `tag [name]` | |
 
 | Plumbing | |
 | --- | --- |
-| `hash-object [-w] <file>` | blob id, optionally stored |
-| `cat-file (-t\|-s\|-p) <id>` | type, size or pretty-printed content (abbreviated ids work) |
-| `write-tree` | tree object from the index |
-| `ls-tree [-r] <id>` | list a tree or a commit's tree |
-| `ls-files` | list the index |
+| `hash-object [-w]`, `cat-file (-t\|-s\|-p)`, `write-tree`, `ls-tree [-r]`, `ls-files` | |
 
-## How it works
+## Os formatos
 
-- **Objects** (`Objects.cs`): an object is `"<type> <size>\0<content>"`. Its
-  SHA-1 is the id; it is stored zlib-compressed under
-  `.git/objects/aa/bbbb...`. Trees are `"<mode> <name>\0<20 raw sha bytes>"`
-  records sorted the way Git sorts them (directories as if they had a
-  trailing `/`). Commits are text headers plus a message.
-- **Index** (`Index.cs`): the `DIRC` version 2 format, big-endian stat
-  fields, 20-byte SHA, flags with the path length, 8-byte padding and a
-  SHA-1 trailer over the whole file. Git's optional extensions are skipped.
-- **Repository** (`Repository.cs`): finds `.git` by walking up, reads and
-  writes refs and symbolic `HEAD`, resolves branches, tags, `HEAD` and
-  abbreviated ids, and reads `user.name` / `user.email` from the config.
-- **Commands** (`Commands.cs`): `status` flattens the HEAD tree and compares
-  it with the index (staged changes), then hashes work tree files and compares
-  them with the index (unstaged changes). `checkout` refuses to run over
-  local changes, rewrites the work tree from the target tree, rebuilds the
-  index and repoints `HEAD`.
-- **Diff** (`Diff.cs`): longest-common-subsequence line diff rendered as
-  unified hunks with three lines of context.
+- **Objetos** (`Objects.cs`): `"<tipo> <tamanho>\0<conteúdo>"`, SHA-1 é o id, guardado com zlib em `.git/objects/aa/bbbb...`. Trees são registros `"<modo> <nome>\0<20 bytes de sha>"` ordenados do jeito que o Git ordena (diretórios como se tivessem `/` no fim, o que me custou uma tarde).
+- **Index** (`Index.cs`): o formato `DIRC` versão 2, campos de stat em big-endian, SHA de 20 bytes, flags com o tamanho do path, padding de 8 bytes e um SHA-1 no fim sobre o arquivo inteiro.
+- **Repository** (`Repository.cs`): acha o `.git` subindo diretórios, lê e escreve refs e o `HEAD` simbólico, resolve branches, tags, ids abreviados, e `user.name`/`user.email` do config.
+- **Diff** (`Diff.cs`): LCS por linha renderizado como hunks unificados com três linhas de contexto.
 
-## Tests
+Testes: `dotnet test`. A suíte xunit compara hashes com ids conhecidos do Git, testa cada comando e a interoperabilidade nos dois sentidos: o `git` de verdade lê nosso index, commits e tags (`git status`, `git log`, `git show`, `git fsck --strict`), e o gitsharp lê repositórios feitos pelo `git`.
 
-```sh
-dotnet test
-```
+---
 
-The xunit suite covers object hashing against known Git ids, tree ordering,
-index round-trips, every command, and interoperability both ways: the real
-`git` binary reads our index, commits and tags (`git status`, `git log`,
-`git show`, `git fsck --strict`), and gitsharp reads repositories made by
-`git`.
-
-## License
-
-MIT
+**EN:** a Git implementation in C# that speaks the real on-disk formats (loose zlib objects, trees with Git's ordering, commits, refs, the binary `DIRC` index), with porcelain (`add`, `commit`, `status`, `log`, `diff`, `branch`, `checkout`, `tag`) and plumbing commands. The xunit suite checks interoperability in both directions with the real `git`. MIT.
