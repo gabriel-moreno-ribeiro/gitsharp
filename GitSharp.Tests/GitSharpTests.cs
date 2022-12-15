@@ -17,10 +17,13 @@ public sealed class Sandbox : IDisposable
     {
         Dir = Path.Combine(Path.GetTempPath(), "gitsharp-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Dir);
+        // use the path the OS reports as the current directory (symlinks resolved), so
+        // relative paths computed from the current directory agree with the work tree
+        Environment.CurrentDirectory = Dir;
+        Dir = Directory.GetCurrentDirectory();
         Repo = Repository.Init(Dir);
         File.AppendAllText(Path.Combine(Repo.GitDir, "config"), "[user]\n\tname = Test User\n\temail = test@example.com\n");
         Cmd = new Commands(Repo, Out);
-        Environment.CurrentDirectory = Dir;
     }
 
     public void Write(string rel, string content)
