@@ -3,6 +3,9 @@ using System.Text;
 using GitSharp;
 using Xunit;
 
+// the sandboxes change the process-wide current directory, so test classes must not run in parallel
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace GitSharp.Tests;
 
 /// <summary>A scratch repository on disk, deleted after each test.</summary>
