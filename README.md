@@ -1,5 +1,7 @@
 # gitsharp
 
+> 🇺🇸 [English version below](#english)
+
 Git em C#. Não um wrapper: ele lê e escreve os formatos de disco de verdade, então um repositório criado com o gitsharp abre no `git` e vice-versa. Objetos soltos (zlib, endereçados por SHA-1), trees, commits, refs e o arquivo binário `.git/index`.
 
 Foi o projeto que me fez parar de ter medo do Git. Depois de escrever o `status` na mão você entende exatamente o que é "staged" e o que é "working tree", e nunca mais precisa daquele diagrama.
@@ -43,4 +45,47 @@ Testes: `dotnet test`. A suíte xunit compara hashes com ids conhecidos do Git, 
 
 ---
 
-**EN:** a Git implementation in C# that speaks the real on-disk formats (loose zlib objects, trees with Git's ordering, commits, refs, the binary `DIRC` index), with porcelain (`add`, `commit`, `status`, `log`, `diff`, `branch`, `checkout`, `tag`) and plumbing commands. The xunit suite checks interoperability in both directions with the real `git`. MIT.
+## English
+
+Git in C#. Not a wrapper: it reads and writes the real on-disk formats, so a repository created with gitsharp opens in `git` and vice versa. Loose objects (zlib, addressed by SHA-1), trees, commits, refs and the binary `.git/index` file.
+
+It was the project that made me stop being afraid of Git. After writing `status` by hand you understand exactly what "staged" and "working tree" are, and you never need that diagram again.
+
+```sh
+dotnet build -c Release
+alias gitsharp="dotnet $PWD/GitSharp/bin/Release/net7.0/gitsharp.dll"
+
+gitsharp init
+echo hello > hello.txt
+gitsharp add .
+gitsharp commit -m "first commit"
+gitsharp log --oneline
+git log --oneline          # the real git agrees
+git fsck --strict          # and validates every object we wrote
+```
+
+| Porcelain | |
+| --- | --- |
+| `init [dir]` | creates an empty repository |
+| `add <path>...` | stage (expands `.` and directories, includes removals) |
+| `rm [--cached] <path>...` | unstage and delete |
+| `commit -m <msg>` | writes tree and commit, advances the branch |
+| `status` | staged / unstaged / untracked against HEAD, index and working tree |
+| `log [--oneline] [-n N]` | walks the parents starting from HEAD |
+| `diff [--cached]` | unified diff |
+| `branch [-d] [name]`, `checkout [-b] <target>`, `tag [name]` | |
+
+| Plumbing | |
+| --- | --- |
+| `hash-object [-w]`, `cat-file (-t\|-s\|-p)`, `write-tree`, `ls-tree [-r]`, `ls-files` | |
+
+## The formats
+
+- **Objects** (`Objects.cs`): `"<type> <size>\0<content>"`, the SHA-1 is the id, stored with zlib in `.git/objects/aa/bbbb...`. Trees are `"<mode> <name>\0<20 bytes of sha>"` records sorted the way Git sorts them (directories as if they had a `/` at the end, which cost me an afternoon).
+- **Index** (`Index.cs`): the `DIRC` format version 2, big-endian stat fields, 20-byte SHA, flags with the path length, 8-byte padding and a SHA-1 at the end over the whole file.
+- **Repository** (`Repository.cs`): finds `.git` walking up directories, reads and writes refs and the symbolic `HEAD`, resolves branches, tags, abbreviated ids, and `user.name`/`user.email` from the config.
+- **Diff** (`Diff.cs`): line-based LCS rendered as unified hunks with three lines of context.
+
+Tests: `dotnet test`. The xunit suite compares hashes with known Git ids, tests every command and the interoperability in both directions: the real `git` reads our index, commits and tags (`git status`, `git log`, `git show`, `git fsck --strict`), and gitsharp reads repositories made by `git`.
+
+MIT.
