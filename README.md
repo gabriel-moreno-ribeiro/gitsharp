@@ -8,7 +8,7 @@ Foi o projeto que me fez parar de ter medo do Git. Depois de escrever o `status`
 
 ```sh
 dotnet build -c Release
-alias gitsharp="dotnet $PWD/GitSharp/bin/Release/net7.0/gitsharp.dll"
+alias gitsharp="dotnet $PWD/GitSharp/bin/Release/net8.0/gitsharp.dll"
 
 gitsharp init
 echo hello > hello.txt
@@ -53,7 +53,7 @@ It was the project that made me stop being afraid of Git. After writing `status`
 
 ```sh
 dotnet build -c Release
-alias gitsharp="dotnet $PWD/GitSharp/bin/Release/net7.0/gitsharp.dll"
+alias gitsharp="dotnet $PWD/GitSharp/bin/Release/net8.0/gitsharp.dll"
 
 gitsharp init
 echo hello > hello.txt
